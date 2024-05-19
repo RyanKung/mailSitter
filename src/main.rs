@@ -1,11 +1,11 @@
 use clap::Parser;
-use imap::types::Fetch;
-use imap::Session;
-use mailparse::MailHeaderMap;
 use native_tls::TlsConnector;
+use imap::Session;
+use imap::types::Fetch;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
+use mailparse::MailHeaderMap;
 
 /// Simple email reader
 #[derive(Parser, Debug)]
@@ -17,19 +17,13 @@ struct Args {
 }
 
 fn config_path_default() -> String {
-    dirs::home_dir()
-        .unwrap()
-        .join(".mailsitter")
-        .join("config")
-        .to_string_lossy()
-        .to_string()
+    dirs::home_dir().unwrap().join(".mailsitter").join("config").to_string_lossy().to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Config {
-    org_email: String,
-    from_email: String,
-    from_pwd: String,
+    email: String,
+    pwd: String,
     smtp_server: String,
     smtp_port: u16,
 }
@@ -38,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let config: Config = read_config(&args.config)?;
-    read_email_from_gmail(&config)?;
+    read_email(&config)?;
     Ok(())
 }
 
@@ -48,17 +42,11 @@ fn read_config(path: &String) -> Result<Config, Box<dyn Error>> {
     Ok(config)
 }
 
-fn read_email_from_gmail(config: &Config) -> Result<(), Box<dyn Error>> {
+fn read_email(config: &Config) -> Result<(), Box<dyn Error>> {
     let tls = TlsConnector::builder().build()?;
-    let client = imap::connect(
-        (config.smtp_server.as_str(), config.smtp_port),
-        &config.smtp_server,
-        &tls,
-    )?;
+    let client = imap::connect((config.smtp_server.as_str(), config.smtp_port), &config.smtp_server, &tls)?;
 
-    let mut imap_session: Session<_> = client
-        .login(&config.from_email, &config.from_pwd)
-        .map_err(|e| e.0)?;
+    let mut imap_session: Session<_> = client.login(&config.email, &config.pwd).map_err(|e| e.0)?;
 
     imap_session.select("inbox")?;
     let messages = imap_session.search("ALL")?;
@@ -73,9 +61,7 @@ fn read_email_from_gmail(config: &Config) -> Result<(), Box<dyn Error>> {
             let email = mailparse::parse_mail(msg.as_bytes())?;
             let headers = email.get_headers();
             let from_header = headers.get_first_header("From").ok_or("No From header")?;
-            let subject_header = headers
-                .get_first_header("Subject")
-                .ok_or("No Subject header")?;
+            let subject_header = headers.get_first_header("Subject").ok_or("No Subject header")?;
 
             println!("From: {}\n", from_header.get_value());
             println!("Subject: {}\n", subject_header.get_value());
