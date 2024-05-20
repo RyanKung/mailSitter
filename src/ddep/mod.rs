@@ -51,12 +51,10 @@ impl DdConfig {
 
 pub fn get_otp_via_mail(mail: &str) -> Option<String> {
     let re = Regex::new(r"one-time passphrase.*?\r\n\r\n([\w\s-]+)\r\n\r\n").unwrap();
-    if let Some(capture) = re.captures(&mail) {
-        if let Some(passphrase) = capture.get(1) {
-            Some(passphrase.as_str().to_string())
-        } else {
-            None
-        }
+    if let Some(capture) = re.captures(mail) {
+        capture
+            .get(1)
+            .map(|passphrase| passphrase.as_str().to_string())
     } else {
         None
     }

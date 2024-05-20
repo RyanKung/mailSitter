@@ -35,6 +35,8 @@ enum Commands {
         username: Option<String>,
 
         /// Password
+        /// If you are using gmail, you need to create you app password
+        /// `https://support.google.com/accounts/answer/185833?hl=en`
         #[arg(long)]
         pwd: String,
 
@@ -46,7 +48,17 @@ enum Commands {
         #[arg(long, default_value_t = config_path_default())]
         path: String,
     },
+    #[cfg(feature = "ddep")]
+    Login {
+        /// Username of duckduckgo email protection services,
+        /// this feature require compile with flag --features ddep
+        #[arg(long)]
+        username: String,
 
+        /// Path of the configuration file
+        #[arg(long, default_value_t = config_path_default())]
+        path: String,
+    },
     /// Read emails using the configuration file
     Fetch {
         /// Path to the configuration file
@@ -103,9 +115,9 @@ async fn login_ddep(u: String, config: email::EmailConfig) -> Result<(), Box<dyn
             0.5,
         )
         .await?;
-    if emails.len() > 0 {
+    if !emails.is_empty() {
         let msg = &emails.last().unwrap().body;
-        if let Some(otp) = ddep::get_otp_via_mail(&msg) {
+        if let Some(otp) = ddep::get_otp_via_mail(msg) {
             client.full_login(otp.as_str(), None).await?;
             println!("{}", "Got token!".green());
             let ddep_path = config_path_default();
@@ -133,10 +145,15 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
             #[cfg(feature = "ddep")]
             {
                 if let Some(u) = username {
-                    let _ = login_ddep(u, config).await?;
+                    login_ddep(u, config).await?;
                 }
             }
             println!("{}", "Configuration initialized successfully!".green());
+        }
+        #[cfg(feature = "ddep")]
+        Commands::Login { username, path } => {
+            let config: email::EmailConfig = email::EmailConfig::read(&path)?;
+            login_ddep(username, config).await?;
         }
         Commands::Fetch { config } => {
             let config: email::EmailConfig = email::EmailConfig::read(&config)?;
@@ -189,7 +206,7 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
                             if let Some(Ok(username)) = input {
                                 let username = username.trim();
                                 let email_cfg = email::EmailConfig::read(&config)?;
-                                let _ = login_ddep(username.to_string(), email_cfg).await?;
+                                login_ddep(username.to_string(), email_cfg).await?;
                             }
                         }
                         _ => {
@@ -213,6 +230,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let args = Args::parse();
-    let _ = parse_cmd(args.command).await?;
+    parse_cmd(args.command).await?;
     Ok(())
 }

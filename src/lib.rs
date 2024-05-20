@@ -1,7 +1,7 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
-use serde_yaml;
+
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;

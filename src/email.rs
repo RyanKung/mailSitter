@@ -127,7 +127,7 @@ impl EmailConfig {
         loop {
             match self.fetch_email(filter) {
                 Ok(emails) => {
-                    if emails.len() > 0 {
+                    if !emails.is_empty() {
                         return Ok(emails);
                     }
                 }
