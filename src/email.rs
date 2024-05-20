@@ -1,6 +1,6 @@
 //! Module for read email via imap
-use colored::*;
 use crate::Config;
+use colored::*;
 use imap::types::Fetch;
 use imap::Session;
 use mailparse::MailHeaderMap;

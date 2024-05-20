@@ -27,13 +27,13 @@ impl Config for DdConfig {
 
 impl From<Client> for DdConfig {
     fn from(client: Client) -> Self {
-	Self::new(client.username, client.token, client.access_token)
+        Self::new(client.username, client.token, client.access_token)
     }
 }
 
 impl From<DdConfig> for Client {
     fn from(cfg: DdConfig) -> Self {
-	Self::new(cfg.username, cfg.token, cfg.access_token)
+        Self::new(cfg.username, cfg.token, cfg.access_token)
     }
 }
 
@@ -42,8 +42,8 @@ impl DdConfig {
     pub fn new(username: String, token: Option<String>, access_token: Option<String>) -> Self {
         Self {
             username,
-	    token,
-	    access_token,
+            token,
+            access_token,
             other: std::collections::HashMap::new(),
         }
     }

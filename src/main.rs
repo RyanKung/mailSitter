@@ -78,12 +78,16 @@ async fn login_ddep(u: String, config: email::EmailConfig) -> Result<(), Box<dyn
     println!("{}", "Getting OTP...".cyan());
     if let Err(_) = client.otp(None).await {
         println!("{}", "DuckDuckGo thinks you are a bot.".red());
-        println!("{}", "We need you to verify your identity by logging in once.".yellow());
+        println!(
+            "{}",
+            "We need you to verify your identity by logging in once.".yellow()
+        );
         println!("{}",
             "Please click [here](https://duckduckgo.com/email/login) to log in to your email, and then return here."
             .blue()
         );
-        #[cfg(not(feature = "gui"))] {
+        #[cfg(not(feature = "gui"))]
+        {
             let _ = mail_sitter::utils::browser::open("https://duckduckgo.com/email/login");
             println!("{}", "please press Enter to continue...".green());
             let stdin = io::stdin();
@@ -137,9 +141,7 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
         Commands::Fetch { config } => {
             let config: email::EmailConfig = email::EmailConfig::read(&config)?;
             println!("{}", "Fetching emails...".cyan());
-            config.fetch_email(
-                "NOT SEEN",
-            )?;
+            config.fetch_email("NOT SEEN")?;
             println!("{}", "Emails fetched successfully!".green());
         }
         #[cfg(feature = "ddep")]
@@ -150,12 +152,22 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
                 println!("{}", "Generated success!\n".green());
                 println!("{}", format!("{}@duck.com", addr).red());
             } else {
-                println!("{}", "Config of duckduckgo email protection not found!".red());
-                println!("{}", "You can regist the services from https://duckduckgo.com/email/start".blue());
+                println!(
+                    "{}",
+                    "Config of duckduckgo email protection not found!".red()
+                );
+                println!(
+                    "{}",
+                    "You can regist the services from https://duckduckgo.com/email/start".blue()
+                );
                 println!("{}", "Or set username with init command".blue());
-                #[cfg(not(feature = "gui"))] {
+                #[cfg(not(feature = "gui"))]
+                {
                     println!("{}", "Open browser and visit site? [0]".yellow());
-                    println!("{}", "Setup username of duckduckgo email protection services? [1]".yellow());
+                    println!(
+                        "{}",
+                        "Setup username of duckduckgo email protection services? [1]".yellow()
+                    );
                     let stdin = io::stdin();
                     let input = {
                         stdin
@@ -166,7 +178,9 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
                     };
                     match input.trim().to_lowercase().as_str() {
                         "0" => {
-                            mail_sitter::utils::browser::open("https://duckduckgo.com/email/start")?;
+                            mail_sitter::utils::browser::open(
+                                "https://duckduckgo.com/email/start",
+                            )?;
                         }
                         "1" => {
                             println!("{}", "Your username: \n\n".cyan());
@@ -192,7 +206,6 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     colored::control::set_override(true);
-
 
     #[cfg(feature = "gui")]
     {

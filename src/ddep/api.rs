@@ -2,7 +2,8 @@ use reqwest::header::{HeaderMap, HeaderValue, ORIGIN, REFERER, USER_AGENT};
 use serde::Deserialize;
 use std::error::Error;
 
-const USER_AGENT_STR: &str = "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/110.0";
+const USER_AGENT_STR: &str =
+    "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/110.0";
 const API_BASE: &str = "https://quack.duckduckgo.com/api";
 const OTP: &str = "/auth/loginlink";
 const LOGIN: &str = "/auth/login";
