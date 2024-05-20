@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use colored::*;
 #[cfg(feature = "ddep")]
 use mail_sitter::ddep;
 use mail_sitter::email;
@@ -66,7 +67,7 @@ fn config_path_default() -> String {
     dirs::home_dir()
         .unwrap()
         .join(".mailsitter")
-        .join("email.yaml")
+        .join("config")
         .to_string_lossy()
         .to_string()
 }
@@ -74,35 +75,40 @@ fn config_path_default() -> String {
 #[cfg(feature = "ddep")]
 async fn login_ddep(u: String, config: email::EmailConfig) -> Result<(), Box<dyn Error>> {
     let mut client = ddep::Client::new(u.clone(), None, None);
-    println!("Getting OTP...");
+    println!("{}", "Getting OTP...".cyan());
     if let Err(_) = client.otp(None).await {
-        println!("DuckDuckGo thinks you are a bot.");
-        println!("We need you to verify your identity by logging in once.");
-        println!("Please click [here](https://duckduckgo.com/email/login) to log in to your email, and then return here.");
-        println!("After the login email is sent, please press Enter to continue...");
-        let _ = mail_sitter::utils::browser::open("https://duckduckgo.com/email/login");
-        let stdin = io::stdin();
-        let _ = stdin.lock().lines().next();
-        println!("Continuing...");
+        println!("{}", "DuckDuckGo thinks you are a bot.".red());
+        println!("{}", "We need you to verify your identity by logging in once.".yellow());
+        println!("{}",
+            "Please click [here](https://duckduckgo.com/email/login) to log in to your email, and then return here."
+            .blue()
+        );
+        #[cfg(not(feature = "gui"))] {
+            let _ = mail_sitter::utils::browser::open("https://duckduckgo.com/email/login");
+            println!("{}", "please press Enter to continue...".green());
+            let stdin = io::stdin();
+            let _ = stdin.lock().lines().next();
+        }
+        println!("{}", "Continuing...".cyan());
     }
-    println!("Checking latest login email");
+    println!("{}", "Checking latest login email".cyan());
     let emails = config
         .fetch_until(
             "NOT OR OR NOT FROM support@duck.com NOT BODY \"one-time passphrase\" SEEN",
-            10,
+            30,
             0.5,
         )
         .await?;
     if emails.len() > 0 {
         let msg = &emails.last().unwrap().body;
         if let Some(otp) = ddep::get_otp_via_mail(&msg) {
-            let token = client.login(otp.as_str(), None).await?;
-            println!("Got token!");
+            client.full_login(otp.as_str(), None).await?;
+            println!("{}", "Got token!".green());
             let ddep_path = config_path_default();
-            let config = ddep::DdConfig::new(u, token);
+            let config: ddep::DdConfig = client.into();
             config.save(&ddep_path)?;
         } else {
-            println!("Failed to parse email, {:?}", &msg);
+            println!("{} {:?}", "Failed to parse email,".red(), &msg);
         }
     }
     Ok(())
@@ -126,46 +132,55 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
                     let _ = login_ddep(u, config).await?;
                 }
             }
+            println!("{}", "Configuration initialized successfully!".green());
         }
         Commands::Fetch { config } => {
             let config: email::EmailConfig = email::EmailConfig::read(&config)?;
-            // A AND B = NOT(NOT A OR NOT B)
+            println!("{}", "Fetching emails...".cyan());
             config.fetch_email(
-                "NOT OR OR NOT FROM support@duck.com NOT BODY \"one-time passphrase\" SEEN",
+                "NOT SEEN",
             )?;
+            println!("{}", "Emails fetched successfully!".green());
         }
         #[cfg(feature = "ddep")]
         Commands::Address { config } => {
             if let Ok(cfg) = ddep::DdConfig::read(&config) {
+                let client: ddep::Client = cfg.into();
+                let addr = client.generate_alias().await?;
+                println!("{}", "Generated success!\n".green());
+                println!("{}", format!("{}@duck.com", addr).red());
             } else {
-                println!("Config of duckduckgo email protection not found!");
-                println!("You can regist the services from https://duckduckgo.com/email/start");
-                println!("Open browser and visit site? [0]");
-                println!("Setup username of duckduckgo email protection services? [1]");
-                let stdin = io::stdin();
-                let input = {
-                    stdin
-                        .lock()
-                        .lines()
-                        .next()
-                        .unwrap_or_else(|| Ok(String::from("")))?
-                };
-                match input.trim().to_lowercase().as_str() {
-                    "0" => {
-                        mail_sitter::utils::browser::open("https://duckduckgo.com/email/start")?;
-                    }
-                    "1" => {
-                        println!("Your username: \n\n");
-                        let stdin = io::stdin();
-                        let input = { stdin.lock().lines().next() };
-                        if let Some(Ok(username)) = input {
-                            let username = username.trim();
-                            let email_cfg = email::EmailConfig::read(&config)?;
-                            let _ = login_ddep(username.to_string(), email_cfg).await?;
+                println!("{}", "Config of duckduckgo email protection not found!".red());
+                println!("{}", "You can regist the services from https://duckduckgo.com/email/start".blue());
+                println!("{}", "Or set username with init command".blue());
+                #[cfg(not(feature = "gui"))] {
+                    println!("{}", "Open browser and visit site? [0]".yellow());
+                    println!("{}", "Setup username of duckduckgo email protection services? [1]".yellow());
+                    let stdin = io::stdin();
+                    let input = {
+                        stdin
+                            .lock()
+                            .lines()
+                            .next()
+                            .unwrap_or_else(|| Ok(String::from("")))?
+                    };
+                    match input.trim().to_lowercase().as_str() {
+                        "0" => {
+                            mail_sitter::utils::browser::open("https://duckduckgo.com/email/start")?;
                         }
-                    }
-                    _ => {
-                        println!("Exit.");
+                        "1" => {
+                            println!("{}", "Your username: \n\n".cyan());
+                            let stdin = io::stdin();
+                            let input = { stdin.lock().lines().next() };
+                            if let Some(Ok(username)) = input {
+                                let username = username.trim();
+                                let email_cfg = email::EmailConfig::read(&config)?;
+                                let _ = login_ddep(username.to_string(), email_cfg).await?;
+                            }
+                        }
+                        _ => {
+                            println!("{}", "Exit.".yellow());
+                        }
                     }
                 }
             }
@@ -176,12 +191,15 @@ async fn parse_cmd(cmd: Commands) -> Result<(), Box<dyn Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    colored::control::set_override(true);
+
+
     #[cfg(feature = "gui")]
     {
         klask::run_derived::<Args, _>(klask::Settings::default(), |o| println!("{:#?}", o));
     }
 
     let args = Args::parse();
-    let _ = parse_cmd(args.command);
+    let _ = parse_cmd(args.command).await?;
     Ok(())
 }

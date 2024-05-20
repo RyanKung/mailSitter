@@ -1,5 +1,5 @@
 //! Module for read email via imap
-
+use colored::*;
 use crate::Config;
 use imap::types::Fetch;
 use imap::Session;
@@ -106,7 +106,7 @@ impl EmailConfig {
             let msg = fetch.body().ok_or("No message content").unwrap();
             if let Ok(msg) = std::str::from_utf8(msg) {
                 let email: Email = mailparse::parse_mail(msg.as_bytes()).unwrap().into();
-                println!("{}", email);
+                println!("{}", email.to_string().as_str().blue());
                 ret.push(email);
             }
             ret

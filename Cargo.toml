@@ -29,3 +29,4 @@ serde_json = { version = "1.0.117", optional=true }
 regex = { version = "1.10.4" }
 # gui
 klask = { version = "1.0.0", optional = true, git="https://github.com/xosxos/klask.git"}
+colored = "2.1.0"

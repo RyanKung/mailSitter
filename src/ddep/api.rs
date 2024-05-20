@@ -2,7 +2,7 @@ use reqwest::header::{HeaderMap, HeaderValue, ORIGIN, REFERER, USER_AGENT};
 use serde::Deserialize;
 use std::error::Error;
 
-const USER_AGENT_STR: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const USER_AGENT_STR: &str = "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/110.0";
 const API_BASE: &str = "https://quack.duckduckgo.com/api";
 const OTP: &str = "/auth/loginlink";
 const LOGIN: &str = "/auth/login";
@@ -10,15 +10,12 @@ const DASHBOARD: &str = "/email/dashboard";
 const GEN_EMAIL: &str = "/email/addresses";
 
 #[derive(Deserialize, Debug)]
-pub struct LoginResponse {
-    status: String,
+struct LoginResponse {
     token: String,
-    user: String,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct DashboardResponse {
-    invites: Vec<String>,
+struct DashboardResponse {
     stats: Stats,
     user: User,
 }
@@ -31,16 +28,15 @@ struct Stats {
 #[derive(Deserialize, Debug)]
 pub struct User {
     access_token: String,
-    cohort: String,
     email: String,
-    username: String,
 }
 
+#[derive(Debug)]
 pub struct Client {
-    username: String,
-    token: Option<String>,
-    access_token: Option<String>,
-    generated_addresses: Option<i32>,
+    pub username: String,
+    pub token: Option<String>,
+    pub access_token: Option<String>,
+    pub generated_addresses: Option<i32>,
     real_email: Option<String>,
     logged_in: bool,
     session: reqwest::Client,
@@ -119,10 +115,9 @@ impl Client {
         Ok(login_response.token)
     }
 
-    pub async fn dashboard(&self) -> Result<DashboardResponse, Box<dyn Error>> {
+    async fn dashboard(&self) -> Result<DashboardResponse, Box<dyn Error>> {
         let url = format!("{}{}", API_BASE, DASHBOARD);
-        let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static(USER_AGENT_STR));
+        let mut headers = self.headers.clone();
         if let Some(token) = &self.token {
             headers.insert(
                 "Authorization",
@@ -152,8 +147,7 @@ impl Client {
 
     pub async fn generate_alias(&self) -> Result<String, Box<dyn Error>> {
         let url = format!("{}{}", API_BASE, GEN_EMAIL);
-        let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static(USER_AGENT_STR));
+        let mut headers = self.headers.clone();
         if let Some(access_token) = &self.access_token {
             headers.insert(
                 "Authorization",

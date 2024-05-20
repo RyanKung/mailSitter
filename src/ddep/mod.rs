@@ -7,12 +7,12 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DdConfig {
-    pub token: String,
     pub username: String,
+    pub token: Option<String>,
+    pub access_token: Option<String>,
     #[serde(flatten)]
     other: std::collections::HashMap<String, serde_yaml::Value>,
 }
@@ -25,12 +25,25 @@ impl Config for DdConfig {
     }
 }
 
+impl From<Client> for DdConfig {
+    fn from(client: Client) -> Self {
+	Self::new(client.username, client.token, client.access_token)
+    }
+}
+
+impl From<DdConfig> for Client {
+    fn from(cfg: DdConfig) -> Self {
+	Self::new(cfg.username, cfg.token, cfg.access_token)
+    }
+}
+
 impl DdConfig {
     /// create new config instantce
-    pub fn new(token: String, username: String) -> Self {
+    pub fn new(username: String, token: Option<String>, access_token: Option<String>) -> Self {
         Self {
-            token,
             username,
+	    token,
+	    access_token,
             other: std::collections::HashMap::new(),
         }
     }
