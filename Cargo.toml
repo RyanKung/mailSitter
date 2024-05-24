@@ -3,6 +3,7 @@ name = "mail_sitter"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0"
+description = "A command-line tool for managing email services, providing utilities to automate and streamline email operations."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
